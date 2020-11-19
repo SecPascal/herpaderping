@@ -330,11 +330,13 @@ HRESULT Utils::SetFilePointer(
     return S_OK;
 }
 
+
 _Use_decl_annotations_
 HRESULT Utils::CopyFileByHandle(
-    handle_t SourceHandle, 
+    handle_t SourceHandle,
     handle_t TargetHandle,
-    bool FlushFile)
+    bool FlushFile,
+    uint8_t key)
 {
     //
     // Get the file sizes.
@@ -351,7 +353,7 @@ HRESULT Utils::CopyFileByHandle(
     RETURN_IF_FAILED(SetFilePointer(SourceHandle, 0, FILE_BEGIN));
     RETURN_IF_FAILED(SetFilePointer(TargetHandle, 0, FILE_BEGIN));
 
-    uint64_t bytesRemaining = sourceSize; 
+    uint64_t bytesRemaining = sourceSize;
     std::vector<uint8_t> buffer;
     if (bytesRemaining > MaxFileBuffer)
     {
@@ -371,19 +373,24 @@ HRESULT Utils::CopyFileByHandle(
 
         DWORD bytesRead = 0;
         RETURN_IF_WIN32_BOOL_FALSE(ReadFile(SourceHandle,
-                                            buffer.data(),
-                                            SCAST(DWORD)(buffer.size()),
-                                            &bytesRead,
-                                            nullptr));
+            buffer.data(),
+            SCAST(DWORD)(buffer.size()),
+            &bytesRead,
+            nullptr));
 
         bytesRemaining -= bytesRead;
 
+        if (key > 0) {
+            for (int i = 0; i < buffer.size(); i++)
+                buffer[i] ^= key;
+        }
+
         DWORD bytesWitten = 0;
         RETURN_IF_WIN32_BOOL_FALSE(WriteFile(TargetHandle,
-                                             buffer.data(),
-                                             SCAST(DWORD)(buffer.size()),
-                                             &bytesWitten,
-                                             nullptr));
+            buffer.data(),
+            SCAST(DWORD)(buffer.size()),
+            &bytesWitten,
+            nullptr));
     }
 
     if (FlushFile)
@@ -394,6 +401,76 @@ HRESULT Utils::CopyFileByHandle(
 
     return S_OK;
 }
+
+_Use_decl_annotations_
+HRESULT Utils::CopyAndXorFileByHandle(
+    handle_t SourceHandle,
+    handle_t TargetHandle,
+    uint8_t key,
+    bool FlushFile)
+{
+    //
+    // Get the file sizes.
+    //
+    uint64_t sourceSize;
+    RETURN_IF_FAILED(GetFileSize(SourceHandle, sourceSize));
+
+    uint64_t targetSize;
+    RETURN_IF_FAILED(GetFileSize(TargetHandle, targetSize));
+
+    //
+    // Set the file pointers to the beginning of the files.
+    //
+    RETURN_IF_FAILED(SetFilePointer(SourceHandle, 0, FILE_BEGIN));
+    RETURN_IF_FAILED(SetFilePointer(TargetHandle, 0, FILE_BEGIN));
+
+    uint64_t bytesRemaining = sourceSize;
+    std::vector<uint8_t> buffer;
+    if (bytesRemaining > MaxFileBuffer)
+    {
+        buffer.assign(MaxFileBuffer, 0);
+    }
+    else
+    {
+        buffer.assign(SCAST(size_t)(bytesRemaining), 0);
+    }
+
+    while (bytesRemaining > 0)
+    {
+        if (bytesRemaining < buffer.size())
+        {
+            buffer.assign(SCAST(size_t)(bytesRemaining), 0);
+        }
+
+        DWORD bytesRead = 0;
+        RETURN_IF_WIN32_BOOL_FALSE(ReadFile(SourceHandle,
+            buffer.data(),
+            SCAST(DWORD)(buffer.size()),
+            &bytesRead,
+            nullptr));
+
+        bytesRemaining -= bytesRead;
+
+        for (int i = 0; i < buffer.size(); i++)
+            buffer[i] ^= key;
+
+        DWORD bytesWitten = 0;
+        RETURN_IF_WIN32_BOOL_FALSE(WriteFile(TargetHandle,
+            buffer.data(),
+            SCAST(DWORD)(buffer.size()),
+            &bytesWitten,
+            nullptr));
+    }
+
+    if (FlushFile)
+    {
+        RETURN_IF_WIN32_BOOL_FALSE(FlushFileBuffers(TargetHandle));
+    }
+    RETURN_IF_WIN32_BOOL_FALSE(SetEndOfFile(TargetHandle));
+
+    return S_OK;
+}
+
 
 _Use_decl_annotations_
 HRESULT Utils::OverwriteFileContentsWithPattern(

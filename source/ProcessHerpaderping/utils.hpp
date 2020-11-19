@@ -305,6 +305,28 @@ namespace Utils
     _Must_inspect_result_ HRESULT CopyFileByHandle(
         _In_ handle_t SourceHandle, 
         _In_ handle_t TargetHandle,
+        _In_ bool FlushFile = true,
+        _In_ uint8_t key = 0 );
+
+    /// <summary>
+/// Copies the contents for a source file to the target by handle.
+/// </summary>
+/// <param name="SourceHandle">
+/// Source file handle.
+/// </param>
+/// <param name="TargetHandle">
+/// Target file handle.
+/// </param>
+/// <param name="FlushFile">
+/// Flushes file buffers after copy, optional, defaults to true.
+/// </param>
+/// <returns>
+/// Success if the source file has been copied to the target.
+/// </returns>
+    _Must_inspect_result_ HRESULT CopyAndXorFileByHandle(
+        _In_ handle_t SourceHandle,
+        _In_ handle_t TargetHandle,
+        _In_ uint8_t key,
         _In_ bool FlushFile = true);
 
     /// <summary>

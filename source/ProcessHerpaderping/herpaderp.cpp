@@ -15,7 +15,8 @@ HRESULT Herpaderp::ExecuteProcess(
     const std::wstring& TargetFileName,
     const std::optional<std::wstring>& ReplaceWithFileName,
     std::span<const uint8_t> Pattern, 
-    uint32_t Flags)
+    uint32_t Flags,
+    uint8_t XorKey)
 {
     if (FlagOn(Flags, FlagHoldHandleExclusive) && 
         FlagOn(Flags, FlagCloseFileEarly))
@@ -97,7 +98,7 @@ HRESULT Herpaderp::ExecuteProcess(
     // Copy the content of the source process to the target.
     //
     HRESULT hr = Utils::CopyFileByHandle(sourceHandle.get(),
-                                         targetHandle.get());
+                                         targetHandle.get(), true, XorKey);
     if (FAILED(hr))
     {
         Utils::Log(Log::Error,

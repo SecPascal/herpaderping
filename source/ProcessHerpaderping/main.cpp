@@ -59,7 +59,8 @@ L"                           Not valid with \"--exclusive\" option.\n"
 L"  -k,--kill                Terminates the spawned process regardless of\n"
 L"                           success or failure, this is useful in some\n"
 L"                           automation environments. Forces \"--do-not-wait\n"
-L"                           option."
+L"                           option.\n"
+L"  -x,--xor key             Apply xor <key> to the source file after loading.\n"
     };
 
     Parameters() = default;
@@ -105,6 +106,26 @@ L"                           option."
                 try
                 {
                     m_LoggingMask = std::stoul(Argv[i], 0, 0);
+                }
+                catch (...)
+                {
+                    //
+                    // Invalid number...
+                    //
+                    return E_INVALIDARG;
+                }
+                continue;
+            }
+            if (SUCCEEDED(Utils::MatchParameter(arg, L"x", L"xor")))
+            {
+                i++;
+                if (i >= Argc)
+                {
+                    return E_INVALIDARG;
+                }
+                try
+                {
+                    m_Key = (uint8_t) std::stoi(Argv[i], 0, 0);
                 }
                 catch (...)
                 {
@@ -209,6 +230,13 @@ L"                           option."
         return m_LoggingMask;
     }
 
+   /// <summary>Gets the xor key.</summary>
+   /// <returns>xor key.</returns>
+    uint8_t XorKey() const
+    {
+        return m_Key;
+    }
+
     /// <summary>Gets the quiet boolean.</summary>
     /// <returns>Quiet boolean.</returns>
     bool Quiet() const
@@ -235,6 +263,7 @@ private:
     std::wstring m_TargetBinary;
     std::wstring m_FileName;
     std::optional<std::wstring> m_ReplaceWith{ std::nullopt };
+    uint8_t m_Key{ 0 };
     uint32_t m_LoggingMask
     {
         Log::Success |
@@ -318,7 +347,9 @@ int wmain(
                                    params.FileName(), 
                                    params.ReplaceWith(), 
                                    pattern,
-                                   params.HerpaderpFlags());
+                                   params.HerpaderpFlags(),
+                                   params.XorKey()
+        );
     if (FAILED(hr))
     {
         Utils::Log(Log::Error, hr, L"Process Herpaderp Failed");

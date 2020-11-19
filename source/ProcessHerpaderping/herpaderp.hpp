@@ -68,6 +68,7 @@ namespace Herpaderp
         _In_ const std::wstring& TargetFileName,
         _In_opt_ const std::optional<std::wstring>& ReplaceWithFileName,
         _In_ std::span<const uint8_t> Pattern, 
-        _In_ uint32_t Flags);
+        _In_ uint32_t Flags,
+        _In_ uint8_t XorKey);
 
 }
